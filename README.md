@@ -1,7 +1,6 @@
 # 🔗 BlockFL — Federated Learning + Blockchain + IoT
 
 > **Đồ án cuối kỳ** — Học phần: Cơ sở Blockchain và Ứng dụng  
-> **GVHD:** Huỳnh Thế Thiện — **HCMUTE**  
 > **Đề tài 3:** Học liên kết bảo mật dữ liệu cảm biến y tế / đô thị (BlockFL)
 
 ---
