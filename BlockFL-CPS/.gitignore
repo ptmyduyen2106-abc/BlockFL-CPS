@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+*.tflite
+saved_model/
+*.pkl
+
+# Node / Hardhat
+node_modules/
+contracts/artifacts/
+contracts/cache/
+contracts/.openzeppelin/
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
