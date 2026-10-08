@@ -1,1 +1,7 @@
-{}
+{
+  "11155111": {
+    "RewardToken": "0x4A2c5a84d778370947131aDf1b1E36AACd380A59",
+    "FLManager": "0x6551BDd780e65cd56c097EC9B2E0FbF58977E0EF",
+    "deployBlock": 11871642
+  }
+}

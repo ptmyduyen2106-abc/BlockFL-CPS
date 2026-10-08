@@ -1,0 +1,14 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "contracts": {
+    "RewardToken": "0x4A2c5a84d778370947131aDf1b1E36AACd380A59",
+    "FLManager": "0x6551BDd780e65cd56c097EC9B2E0FbF58977E0EF"
+  },
+  "txs": {
+    "RewardToken": "0xc22b7b8885cf9095255b544e2681eed88005c939437e1dad507e3ec872cc8666",
+    "FLManager": "0x9d87abe009dc06cce9f0d3195bec263c89150d6f97165e49c1bbb59f87408a58"
+  },
+  "deployBlock": 11871642,
+  "note": "Địa chỉ do nhóm deploy; Etherscan hiển thị Source Code Verified cho cả hai"
+}

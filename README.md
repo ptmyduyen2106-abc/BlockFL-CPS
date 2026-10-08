@@ -39,6 +39,14 @@ Import một khóa Hardhat public (chỉ local) để có ETH test.
 5. Dashboard: `NEXT_PUBLIC_DEFAULT_CHAIN_ID=11155111` (trong `dashboard/.env.local`) → mọi TX/địa chỉ có link `sepolia.etherscan.io`.
 6. Bridge trên Sepolia: đặt `NODE_PRIVATE_KEYS=k0,k1,k2` (mỗi node một ví có ít ETH gas) rồi `node bridge/fl_bridge.js --network sepolia --round 1 --start --finalize`.
 
+## Hợp đồng đã deploy (Sepolia, chainId 11155111)
+| Hợp đồng | Địa chỉ | Etherscan |
+|---|---|---|
+| RewardToken (BFL) | `0x4A2c5a84d778370947131aDf1b1E36AACd380A59` | [xem mã đã verify](https://sepolia.etherscan.io/address/0x4A2c5a84d778370947131aDf1b1E36AACd380A59#code) |
+| FLManager | `0x6551BDd780e65cd56c097EC9B2E0FbF58977E0EF` | [xem mã đã verify](https://sepolia.etherscan.io/address/0x6551BDd780e65cd56c097EC9B2E0FbF58977E0EF#code) |
+
+Block deploy: 11871642. Dashboard đã có sẵn địa chỉ này (`dashboard/src/contracts/addresses.json`); chạy với `NEXT_PUBLIC_DEFAULT_CHAIN_ID=11155111`.
+
 ## Thiết kế hợp đồng (tóm tắt)
 - **Không lưu trọng số on-chain** (quá đắt). Mỗi node gửi `hash(Δw)` (keccak256), CID IPFS (tùy chọn), `numSamples`, `loss`, `accuracy`.
 - `finalizeRound()` (owner/aggregator): tính **FedAvg có trọng số** cho loss/accuracy (`Σ nᵢ·xᵢ / Σ nᵢ`), tạo **cam kết global model**
