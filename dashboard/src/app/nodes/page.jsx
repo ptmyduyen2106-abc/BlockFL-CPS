@@ -53,7 +53,7 @@ export default function Nodes() {
           : (<div className="flex gap-2">
               <input value={meta} onChange={(e) => setMeta(e.target.value)} maxLength={128} placeholder="Mô tả, vd: ESP32-04 | BME280"
                 className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-sm outline-none focus:border-brand" />
-              <button disabled={busy || w.wrongNetwork} onClick={register} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Đang gửi…" : "Đăng ký"}</button>
+              <button disabled={busy || w.wrongNetwork} onClick={register} className="btn-pop rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Đang gửi…" : "Đăng ký"}</button>
             </div>)}
         {w.wrongNetwork && <p className="text-xs text-warn">Chuyển ví sang đúng mạng trước khi đăng ký.</p>}
         {msg && <p className="mono break-all text-xs text-mute">{msg}</p>}

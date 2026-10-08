@@ -2,13 +2,32 @@
 import { addrUrl, txUrl } from "@/lib/chains";
 import { short } from "@/lib/format";
 
-export const Stat = ({ label, value, sub, accent }) => (
-  <div className="card p-4">
-    <div className="text-xs uppercase tracking-wider text-mute">{label}</div>
-    <div className={`mt-1 text-2xl font-bold ${accent || ""}`}>{value}</div>
-    {sub && <div className="mt-1 text-xs text-mute">{sub}</div>}
+export const Stat = ({ label, value, sub, tone = "" }) => (
+  <div className={`card p-4 ${tone ? `tone-${tone}` : ""}`}>
+    <div className="text-sm font-medium opacity-80">{label}</div>
+    <div className="display mt-1 text-4xl font-extrabold leading-none">{value}</div>
+    {sub && <div className="mt-2 text-xs opacity-80">{sub}</div>}
   </div>
 );
+
+/** Chuỗi các vòng FL: mỗi vòng ghi kèm hash của vòng trước */
+export function ChainStrip({ rounds }) {
+  if (!rounds.length) return null;
+  return (
+    <div className="flex items-stretch overflow-x-auto pb-3 pr-2" role="list" aria-label="Chuỗi các vòng FL">
+      {rounds.map((r, i) => (
+        <div key={r.id} className="flex" role="listitem">
+          {i > 0 && <div className="chain-link" />}
+          <div className={`card w-44 shrink-0 p-3 ${r.status === 2 ? "tone-lime" : "tone-sun"}`}>
+            <div className="display text-xl font-extrabold">Vòng {r.id}</div>
+            <div className="mono mt-2 text-[11px] break-all opacity-80">{r.status === 2 ? short(r.globalModelHash, 8, 6) : "đang chờ node"}</div>
+            <div className="mt-2 text-xs font-semibold">{r.status === 2 ? "Đã chốt" : `Đang mở · ${r.updateCount} cập nhật`}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /** Link Etherscan cho TX hash; mạng local không có explorer → chỉ hiển thị hash */
 export function TxLink({ chainId, hash }) {

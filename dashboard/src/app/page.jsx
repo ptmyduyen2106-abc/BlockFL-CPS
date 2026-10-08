@@ -1,7 +1,7 @@
 "use client";
 import useChainData from "@/components/useChainData";
 import { useWallet } from "@/components/WalletProvider";
-import { AddrLink, Empty, ErrorBox, LineChart, Spinner, Stat, TxLink } from "@/components/ui";
+import { AddrLink, ChainStrip, Empty, ErrorBox, LineChart, Spinner, Stat, TxLink } from "@/components/ui";
 import { bfl, short, when } from "@/lib/format";
 import { CHAINS } from "@/lib/chains";
 
@@ -21,15 +21,17 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold">FL Monitor <span className="text-sm font-normal text-mute">· {CHAINS[chainId].name}</span></h1>
+        <h1 className="text-4xl font-extrabold">FL Monitor <span className="text-sm font-normal text-mute">· {CHAINS[chainId].name}</span></h1>
         <p className="text-sm text-mute">Dữ liệu đọc trực tiếp từ smart contract, tự làm mới mỗi 5 giây.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Vòng hiện tại" value={data.currentRound ? `#${data.currentRound}` : "—"} sub={cur ? `${STATUS[cur.status]} · ${cur.updateCount}/${data.minUpdates}+ cập nhật` : "Chưa có vòng nào"} accent="text-brand" />
-        <Stat label="Node đã đăng ký" value={data.nodes.length} sub={`${data.nodes.filter((n) => n.active).length} đang hoạt động`} />
-        <Stat label="Accuracy (FedAvg)" value={last ? `${last.avgAcc.toFixed(2)}%` : "—"} sub={last ? `Vòng #${last.id}` : "Chờ vòng đầu tiên"} accent="text-brand-2" />
-        <Stat label="Token BFL đã phát" value={bfl(data.supply, 0)} sub="Tổng cung RewardToken" />
+      <ChainStrip rounds={data.rounds} />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Stat label="Vòng hiện tại" value={data.currentRound ? `#${data.currentRound}` : "—"} sub={cur ? `${STATUS[cur.status]} · ${cur.updateCount}/${data.minUpdates}+ cập nhật` : "Chưa có vòng nào"} tone="violet" />
+        <Stat label="Node đã đăng ký" value={data.nodes.length} sub={`${data.nodes.filter((n) => n.active).length} đang hoạt động`} tone="sun" />
+        <Stat label="Accuracy (FedAvg)" value={last ? `${last.avgAcc.toFixed(2)}%` : "—"} sub={last ? `Vòng #${last.id}` : "Chờ vòng đầu tiên"} tone="pink" />
+        <Stat label="Token BFL đã phát" value={bfl(data.supply, 0)} sub="Tổng cung RewardToken" tone="lime" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -73,7 +75,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-3 text-sm text-mute">Kết nối MetaMask để xem địa chỉ ví và số dư token thưởng.
-              <button onClick={w.connect} className="block rounded-lg bg-brand px-4 py-2 font-semibold text-white">Kết nối MetaMask</button></div>
+              <button onClick={w.connect} className="block btn-pop rounded-lg bg-brand px-4 py-2 font-semibold text-white">Kết nối MetaMask</button></div>
           )}
           <hr className="border-line" />
           <div className="text-xs text-mute">Global model hash mới nhất</div>

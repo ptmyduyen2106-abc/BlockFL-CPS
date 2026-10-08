@@ -2,6 +2,7 @@ import { Contract, JsonRpcProvider } from "ethers";
 import FLABI from "@/contracts/FLManager.abi.json";
 import TokenABI from "@/contracts/RewardToken.abi.json";
 import { CHAINS, deploymentOf } from "./chains";
+import { USE_MOCK, mockChainData } from "./mock";
 
 const providers = {};
 export const readProvider = (chainId) =>
@@ -18,6 +19,7 @@ const EVENT_LABEL = {
 
 /** Tải toàn bộ trạng thái FL + lịch sử sự kiện từ chuỗi */
 export async function loadChainData(chainId) {
+  if (USE_MOCK) return mockChainData(); // chế độ demo/dự phòng
   const dep = deploymentOf(chainId);
   if (!dep) throw new Error(`Chưa có địa chỉ contract cho chain ${chainId}. Chạy: npx hardhat run scripts/deploy.js --network ...`);
   const provider = readProvider(chainId);
