@@ -3,12 +3,15 @@ require("dotenv").config();
 const { subtask } = require("hardhat/config");
 const { TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD } = require("hardhat/builtin-tasks/task-names");
 
-// Nếu không tải được compiler từ binaries.soliditylang.org (mạng bị chặn), dùng solc-js đi kèm npm.
-// Khi phiên bản trùng với gói `solc` cài sẵn, luôn dùng bản local để build ổn định/offline.
 subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args, hre, runSuper) => {
   const solc = require("solc");
   if (args.solcVersion === require("solc/package.json").version) {
-    return { compilerPath: require.resolve("solc/soljson.js"), isSolcJs: true, version: args.solcVersion, longVersion: solc.version() };
+    return {
+      compilerPath: require.resolve("solc/soljson.js"),
+      isSolcJs: true,
+      version: args.solcVersion,
+      longVersion: "v0.8.24+commit.e11b9ed9", // <--- Gán cố định chuỗi chuẩn này
+    };
   }
   return runSuper();
 });
@@ -21,9 +24,13 @@ module.exports = {
   networks: {
     hardhat: {},
     localhost: { url: "http://127.0.0.1:8545" },
-    ...(SEPOLIA_RPC_URL && DEPLOYER_PRIVATE_KEY
-      ? { sepolia: { url: SEPOLIA_RPC_URL, accounts: [DEPLOYER_PRIVATE_KEY.startsWith("0x") ? DEPLOYER_PRIVATE_KEY : "0x" + DEPLOYER_PRIVATE_KEY], chainId: 11155111 } }
-      : {}),
+    sepolia: {
+      url: SEPOLIA_RPC_URL,
+      accounts: DEPLOYER_PRIVATE_KEY
+        ? [DEPLOYER_PRIVATE_KEY.startsWith("0x") ? DEPLOYER_PRIVATE_KEY : "0x" + DEPLOYER_PRIVATE_KEY]
+        : [],
+      chainId: 11155111,
+    },
   },
   etherscan: { apiKey: ETHERSCAN_API_KEY },
   sourcify: { enabled: false },
