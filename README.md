@@ -13,9 +13,10 @@ Học phần *Cơ sở Blockchain và Ứng dụng* · Hệ thống CPS 3 tầng
 |---|---|---|
 | `contracts/` | `FLManager.sol`, `RewardToken.sol` (ERC-20), `SensorOracle.sol` (Chainlink, tùy chọn), `mocks/` (chỉ test) | Duyên |
 | `test/` | 25 unit test Hardhat (coverage dòng ~99%) | Duyên |
-| `scripts/` | `deploy.js` (local/Sepolia + verify Etherscan), `make_sample_round.js` | Duyên |
+| `scripts/` | `deploy.js` (local/Sepolia + verify Etherscan), `make_sample_round.js` (dữ liệu MẪU), `prepare_dataset.py` (làm sạch dữ liệu Firebase) | Duyên |
 | `bridge/` | `fl_bridge.js` (Ethers.js), `fl_bridge.py` (Web3.py) — gửi hash(Δw) on-chain | Duyên |
-| `dashboard/` | Next.js + Tailwind + MetaMask: FL monitor, bảng node, lịch sử TX, link Etherscan | Duyên |
+| `dashboard/` | Next.js + Tailwind + MetaMask: FL monitor, bảng node, **trang Thưởng** (`/rewards`), lịch sử TX, link Etherscan | Duyên |
+| `data/`, `docs/` | Dữ liệu cảm biến thô + đã làm sạch; `DATASET.md` (nguồn gốc/chất lượng dữ liệu, dự phòng Firebase), `REWARDS_STAKE_SLASH.md` (luật thưởng + đề xuất stake/slash) | Duyên |
 | `ai_model/`, `iot_code/` | Mã AI & IoT (giao diện dữ liệu xem README trong từng thư mục) | Hùng / Trí |
 
 ## Chạy nhanh (local)
@@ -59,3 +60,6 @@ Block deploy: 11871642. Dashboard đã có sẵn địa chỉ này (`dashboard/s
 - Hardhat tải compiler `solc` từ mạng; `hardhat.config.js` tự dùng gói npm `solc@0.8.24` nên build được cả khi mạng bị chặn.
 - Aggregator là một địa chỉ owner (tập trung hóa bước tổng hợp) — phù hợp phạm vi đồ án; hướng mở rộng: multisig / commit–reveal.
 - Dashboard dùng EIP-1193 `window.ethereum` (MetaMask extension) + Ethers.js; chưa dùng `@metamask/sdk` (kết nối mobile qua QR).
+
+## Lưu ý về dữ liệu
+`make_sample_round.js` sinh Δw ngẫu nhiên và `numSamples` giả định — vòng 1 trên Sepolia dùng dữ liệu mẫu này (giao dịch on-chain là thật). Chi tiết và cách dùng dữ liệu cảm biến thật: `docs/DATASET.md`. Không commit khoá riêng; chỉ đặt trong `.env`.

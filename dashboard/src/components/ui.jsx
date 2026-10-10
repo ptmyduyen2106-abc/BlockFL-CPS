@@ -73,3 +73,35 @@ export function LineChart({ series, labels, height = 180, yFmt = (v) => v }) {
     </div>
   );
 }
+
+/** Biểu đồ cột chồng SVG (mỗi cột = một vòng, mỗi màu = một node) */
+export function StackedBars({ labels, series, height = 200, yFmt = (v) => v }) {
+  const W = 560, H = height, P = { l: 44, r: 12, t: 12, b: 24 };
+  const totals = labels.map((_, i) => series.reduce((a, s) => a + (s.values[i] || 0), 0));
+  const max = Math.max(...totals, 0);
+  if (!labels.length || max === 0) return <div className="p-6 text-center text-sm text-mute">Chưa có vòng nào trả thưởng</div>;
+  const bw = Math.min(56, ((W - P.l - P.r) / labels.length) * 0.6);
+  const cx = (i) => P.l + ((i + 0.5) * (W - P.l - P.r)) / labels.length;
+  const y = (v) => P.t + (1 - v / max) * (H - P.t - P.b);
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Thưởng BFL theo vòng và node">
+        {[0, 0.5, 1].map((t) => (
+          <g key={t}><line x1={P.l} x2={W - P.r} y1={y(max * t)} y2={y(max * t)} stroke="var(--color-line)" strokeDasharray="3 4" />
+            <text x={P.l - 6} y={y(max * t) + 4} textAnchor="end" fontSize="10" fill="var(--color-mute)">{yFmt(max * t)}</text></g>))}
+        {labels.map((l, i) => {
+          let acc = 0;
+          return (
+            <g key={l}>
+              {series.map((s) => {
+                const v = s.values[i] || 0; const y0 = y(acc + v), h = y(acc) - y0; acc += v;
+                return v > 0 && <rect key={s.name} x={cx(i) - bw / 2} y={y0} width={bw} height={h} fill={s.color} stroke="var(--color-ink)" strokeWidth="1.5"><title>{`${s.name} – vòng ${l}: ${yFmt(v)} BFL`}</title></rect>;
+              })}
+              <text x={cx(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--color-mute)">{l}</text>
+            </g>);
+        })}
+      </svg>
+      <div className="mt-1 flex flex-wrap gap-4 text-xs text-mute">{series.map((s) => <span key={s.name} className="flex items-center gap-1.5"><i className="inline-block h-2 w-2 rounded-full" style={{ background: s.color }} />{s.name}</span>)}</div>
+    </div>
+  );
+}

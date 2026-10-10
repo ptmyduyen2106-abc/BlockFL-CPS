@@ -9,6 +9,7 @@ import { useWallet } from "./WalletProvider";
 const NAV = [
   { href: "/", label: "Tổng quan", icon: "▦" },
   { href: "/nodes", label: "Node", icon: "◉" },
+  { href: "/rewards", label: "Thưởng", icon: "★" },
   { href: "/transactions", label: "Giao dịch on-chain", icon: "⇄" },
 ];
 

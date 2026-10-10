@@ -6,12 +6,9 @@ async function main() {
   const bal = await hre.ethers.provider.getBalance(deployer.address);
   console.log("So du:", hre.ethers.formatEther(bal), "ETH");
 
-  // 3 Private keys cua 3 node
-  const keys = [
-    "0xd115f4972a2e4773958e3b387ebc1b9ed44dd66733ffa7f4f50d217f3acbb3af",
-    "0x85d44c5833388b37cb54213a38bcf5423f8a46369de11ac5198cb09d40a502a1",
-    "0xa98d3e6a97b9dd5250ea6f1313fbfd66b0faa476aa82697998a67ccace5dde96"
-  ];
+  // Khoa cua cac node doc tu .env (NODE_PRIVATE_KEYS=k0,k1,k2) — KHONG ghi khoa vao ma nguon
+  const keys = (process.env.NODE_PRIVATE_KEYS || "").split(",").map((k) => k.trim()).filter(Boolean);
+  if (keys.length === 0) throw new Error("Thieu NODE_PRIVATE_KEYS trong .env");
 
   const provider = hre.ethers.provider;
 

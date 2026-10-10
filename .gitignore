@@ -8,3 +8,6 @@ dashboard/.next/
 dashboard/node_modules/
 ai_model/outputs/round_[2-9]*/
 *.log
+data/firebase_live.csv
+data/firebase_state.json
+__pycache__/
