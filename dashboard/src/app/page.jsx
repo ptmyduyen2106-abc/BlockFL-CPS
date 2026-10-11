@@ -89,6 +89,7 @@ export default function Dashboard() {
 
       <div className="card overflow-x-auto p-4">
         <h2 className="mb-3 text-sm font-semibold">Sự kiện gần nhất</h2>
+        {data.eventsError && <div className="mb-2 text-xs text-warn">⚠ Không tải được lịch sử sự kiện từ RPC: {data.eventsError}</div>}
         {data.events.length === 0 ? <Empty>Chưa có sự kiện.</Empty> : (
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-mute"><tr><th className="py-1">Sự kiện</th><th>Vòng</th><th>Node</th><th>TX</th><th>Thời gian</th></tr></thead>

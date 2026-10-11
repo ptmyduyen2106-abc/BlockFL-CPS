@@ -12,7 +12,9 @@ export default function SensorPanel() {
   const { data, error } = useSensorData();
   if (!FIREBASE_DB_URL) return null;
   const live = data?.live, hist = data?.history || [], th = data?.thresholds;
-  const lastGas = hist[hist.length - 1]?.gas;
+  const last = hist[hist.length - 1];
+  const lastGas = last?.gas ?? null;
+  const hasGas = hist.some((r) => r.gas !== null);
   const labels = sparse(hist, (r) => hhmm(r.time));
   const hasTH = hist.some((r) => r.temp !== null || r.humi !== null);
 
@@ -31,13 +33,13 @@ export default function SensorPanel() {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <Stat label="Nhiệt độ" value={live ? `${live.temp}°C` : "—"} sub={th && live && live.temp > th.temperatureMax ? `⚠ Vượt ngưỡng ${th.temperatureMax}°C` : "Giá trị hiện tại"} tone="sun" />
             <Stat label="Độ ẩm" value={live ? `${live.humi}%` : "—"} sub="Giá trị hiện tại" tone="violet" />
-            <Stat label="Khí gas (MQ ADC)" value={lastGas ?? "—"} sub={th && lastGas > th.gasMax ? `⚠ Vượt ngưỡng ${th.gasMax}` : "Bản ghi mới nhất"} tone="pink" />
+            <Stat label="Khí gas (MQ ADC)" value={lastGas ?? "—"} sub={lastGas === null ? (last ? "MQ mất tín hiệu (ADC=0/4095)" : "Chưa có bản ghi") : th && lastGas > th.gasMax ? `⚠ Vượt ngưỡng ${th.gasMax}` : "Bản ghi mới nhất"} tone="pink" />
             <Stat label="Bụi" value={live?.dust ?? "—"} sub={`${hist.length} bản ghi lịch sử`} tone="lime" />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="card p-4">
               <h3 className="mb-2 text-sm font-semibold">Gas theo thời gian</h3>
-              <LineChart labels={labels} yFmt={(v) => v.toFixed(0)} series={[{ name: "Gas", color: "var(--color-warn)", values: hist.map((r) => r.gas) }]} />
+              {hasGas ? <LineChart labels={labels} yFmt={(v) => v.toFixed(0)} series={[{ name: "Gas", color: "var(--color-warn)", values: hist.map((r) => r.gas) }]} /> : <div className="p-6 text-center text-sm text-mute">Cảm biến MQ chưa có tín hiệu hợp lệ trong {hist.length} bản ghi gần nhất (ADC = 0 hoặc 4095).</div>}
             </div>
             <div className="card p-4">
               <h3 className="mb-2 text-sm font-semibold">Nhiệt độ & độ ẩm theo thời gian</h3>

@@ -26,6 +26,8 @@ const get = async (path, params) => {
 
 // DHT trả 0 khi đọc lỗi → coi là "không có dữ liệu" (null) thay vì vẽ số 0
 const valid = (v) => (Number(v) > 0 ? Number(v) : null);
+// MQ: 0 = mất tín hiệu, 4095 = bão hoà ADC 12-bit → không hợp lệ
+const validGas = (v) => (Number(v) > 0 && Number(v) < 4095 ? Number(v) : null);
 
 /** Giá trị hiện tại + N bản ghi lịch sử mới nhất + ngưỡng cảnh báo */
 export async function loadSensorData(limit = 60) {
@@ -37,7 +39,7 @@ export async function loadSensorData(limit = 60) {
   ]);
   const history = Object.entries(logs || {})
     .filter(([, v]) => v && typeof v === "object" && "gas" in v)
-    .map(([id, v]) => ({ id, time: pushTime(id), gas: Number(v.gas), humi: valid(v.humi), temp: valid(v.temp) }))
+    .map(([id, v]) => ({ id, time: pushTime(id), gas: validGas(v.gas), gasRaw: Number(v.gas), humi: valid(v.humi), temp: valid(v.temp) }))
     .sort((a, b) => a.time - b.time);
   return { live: live && typeof live === "object" ? live : null, history, thresholds };
 }

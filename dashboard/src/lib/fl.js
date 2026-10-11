@@ -3,8 +3,12 @@ import FLABI from "@/contracts/FLManager.abi.json";
 import TokenABI from "@/contracts/RewardToken.abi.json";
 import { CHAINS, deploymentOf } from "./chains";
 import { USE_MOCK, mockChainData } from "./mock";
+import { createLogScanner } from "./logscan";
 
 const providers = {};
+const scanners = {}, blockTimeCache = {};
+/** Lấy thông điệp lỗi gốc của RPC (ethers hay chỉ báo "could not coalesce error") */
+export const errMsg = (e) => e?.info?.error?.message || e?.error?.message || e?.shortMessage || e?.message || String(e);
 export const readProvider = (chainId) =>
   (providers[chainId] ??= new JsonRpcProvider(CHAINS[chainId].rpc, chainId, { staticNetwork: true, cacheTimeout: -1, batchMaxCount: 1 }));
 
@@ -46,15 +50,23 @@ export async function loadChainData(chainId) {
     return { address: a, metadata: n.metadata, active: n.active, registeredAt: Number(n.registeredAt), totalUpdates: Number(n.totalUpdates), totalRewards: n.totalRewards, balance: bal };
   }));
 
-  // sự kiện on-chain (cho bảng lịch sử giao dịch + link Etherscan)
-  const logs = await fl.queryFilter("*", dep.deployBlock ?? 0, "latest");
-  const blockTimes = {};
-  await Promise.all([...new Set(logs.map((l) => l.blockNumber))].map(async (b) => { blockTimes[b] = (await provider.getBlock(b)).timestamp; }));
+  // sự kiện on-chain (cho bảng lịch sử giao dịch + link Etherscan). Lỗi ở đây không làm hỏng cả dashboard.
+  let logs = [], blockTimes = {}, eventsError = "";
+  try {
+    const latest = Number(await provider.getBlockNumber());
+    const scan = (scanners[chainId] ??= createLogScanner());
+    logs = await scan((x, y) => fl.queryFilter("*", x, y), dep.deployBlock ?? 0, latest);
+    await Promise.all([...new Set(logs.map((l) => l.blockNumber))].map(async (b) => {
+      const k = `${chainId}:${b}`;
+      blockTimeCache[k] ??= (await provider.getBlock(b)).timestamp;
+      blockTimes[b] = blockTimeCache[k];
+    }));
+  } catch (e) { eventsError = errMsg(e); logs = []; }
   const events = logs.filter((l) => l.fragment).map((l) => ({
     name: l.fragment.name, label: EVENT_LABEL[l.fragment.name] || l.fragment.name,
     txHash: l.transactionHash, block: l.blockNumber, logIndex: l.index, time: blockTimes[l.blockNumber],
     args: Object.fromEntries(l.fragment.inputs.map((inp, i) => [inp.name, typeof l.args[i] === "bigint" ? l.args[i] : l.args[i]])),
   })).sort((a, b) => b.block - a.block || b.logIndex - a.logIndex);
 
-  return { currentRound: Number(currentRound), latestGlobalHash, minUpdates: Number(minUpdates), supply, oracle, rounds, nodes, events, fetchedAt: Date.now() };
+  return { currentRound: Number(currentRound), latestGlobalHash, minUpdates: Number(minUpdates), supply, oracle, rounds, nodes, events, eventsError, fetchedAt: Date.now() };
 }
