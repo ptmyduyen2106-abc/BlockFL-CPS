@@ -1,0 +1,26 @@
+{
+  "round": 15,
+  "nodes": [
+    {
+      "nodeIndex": 0,
+      "weightsFile": "node1_dw.bin",
+      "numSamples": 126,
+      "loss": 0.6106,
+      "accuracy": 0.6182
+    },
+    {
+      "nodeIndex": 1,
+      "weightsFile": "node2_dw.bin",
+      "numSamples": 107,
+      "loss": 0.3584,
+      "accuracy": 0.88
+    },
+    {
+      "nodeIndex": 2,
+      "weightsFile": "node3_dw.bin",
+      "numSamples": 61,
+      "loss": 0.1473,
+      "accuracy": 0.9655
+    }
+  ]
+}

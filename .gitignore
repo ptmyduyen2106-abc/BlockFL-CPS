@@ -13,3 +13,6 @@ data/firebase_state.json
 __pycache__/
 .env.local
 dashboard/.env.local
+ai_model/data/firebase_cache.csv
+ai_model/__pycache__/
+ai_model/tests/__pycache__/
