@@ -1,0 +1,177 @@
+From 1ec09f6dfccd4d5198f74c5ef56f2ddbeb05d731 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 06:53:22 +0000
+Subject: [PATCH] feat(dashboard): add realtime Firebase sensor panel (URL via
+ env)
+
+---
+ .gitignore                                |  2 +
+ dashboard/.env.example                    |  4 ++
+ dashboard/src/app/page.jsx                |  3 ++
+ dashboard/src/components/SensorPanel.jsx  | 47 +++++++++++++++++++++++
+ dashboard/src/components/useSensorData.js | 20 ++++++++++
+ dashboard/src/lib/firebase.js             | 28 ++++++++++++++
+ 6 files changed, 104 insertions(+)
+ create mode 100644 dashboard/src/components/SensorPanel.jsx
+ create mode 100644 dashboard/src/components/useSensorData.js
+ create mode 100644 dashboard/src/lib/firebase.js
+
+diff --git a/.gitignore b/.gitignore
+index c8faf2f..1b3668b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -11,3 +11,5 @@ ai_model/outputs/round_[2-9]*/
+ data/firebase_live.csv
+ data/firebase_state.json
+ __pycache__/
++.env.local
++dashboard/.env.local
+diff --git a/dashboard/.env.example b/dashboard/.env.example
+index 632364b..0f29b3b 100644
+--- a/dashboard/.env.example
++++ b/dashboard/.env.example
+@@ -4,3 +4,7 @@ NEXT_PUBLIC_DEFAULT_CHAIN_ID=31337
+ NEXT_PUBLIC_SEPOLIA_RPC_URL=
+ # Bật = 1 để dùng dữ liệu MÔ PHỎNG (demo/dự phòng, có banner cảnh báo). Để trống khi dùng dữ liệu on-chain thật
+ NEXT_PUBLIC_USE_MOCK=
++# Firebase Realtime Database (dữ liệu cảm biến realtime hiển thị trên dashboard). Bỏ trống = ẩn panel.
++# Đặt giá trị thật trong dashboard/.env.local (đã nằm ngoài git), KHÔNG commit vào .env.example.
++NEXT_PUBLIC_FIREBASE_DB_URL=
++NEXT_PUBLIC_FIREBASE_PATH=sensor
+diff --git a/dashboard/src/app/page.jsx b/dashboard/src/app/page.jsx
+index 0721835..b4be0fa 100644
+--- a/dashboard/src/app/page.jsx
++++ b/dashboard/src/app/page.jsx
+@@ -4,6 +4,7 @@ import { useWallet } from "@/components/WalletProvider";
+ import { AddrLink, ChainStrip, Empty, ErrorBox, LineChart, Spinner, Stat, TxLink } from "@/components/ui";
+ import { bfl, short, when } from "@/lib/format";
+ import { CHAINS } from "@/lib/chains";
++import SensorPanel from "@/components/SensorPanel";
+ 
+ const STATUS = ["—", "Đang mở", "Đã chốt"];
+ 
+@@ -83,6 +84,8 @@ export default function Dashboard() {
+         </div>
+       </div>
+ 
++      <SensorPanel />
++
+       <div className="card overflow-x-auto p-4">
+         <h2 className="mb-3 text-sm font-semibold">Sự kiện gần nhất</h2>
+         {data.events.length === 0 ? <Empty>Chưa có sự kiện.</Empty> : (
+diff --git a/dashboard/src/components/SensorPanel.jsx b/dashboard/src/components/SensorPanel.jsx
+new file mode 100644
+index 0000000..48bb6f5
+--- /dev/null
++++ b/dashboard/src/components/SensorPanel.jsx
+@@ -0,0 +1,47 @@
++"use client";
++import useSensorData from "./useSensorData";
++import { LineChart, Stat } from "./ui";
++import { FIREBASE_DB_URL } from "@/lib/firebase";
++
++const hhmm = (ms) => new Date(ms).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
++
++/** Dữ liệu cảm biến realtime từ Firebase (đường dự phòng của ESP32 → RTDB) */
++export default function SensorPanel() {
++  const { rows, error } = useSensorData();
++  if (!FIREBASE_DB_URL) return null;
++  const last = rows?.[rows.length - 1];
++  const labels = (rows || []).map((r) => hhmm(r.time));
++
++  return (
++    <div className="space-y-4">
++      <div className="flex flex-wrap items-baseline gap-2">
++        <h2 className="text-xl font-extrabold">Cảm biến realtime <span className="text-sm font-normal text-mute">· Firebase RTDB</span></h2>
++        <a className="ext text-xs" href={FIREBASE_DB_URL} target="_blank" rel="noreferrer">Mở Firebase ↗</a>
++      </div>
++      {error && !rows ? (
++        <div className="card border-bad/40 p-4 text-sm text-bad">⚠ Không đọc được Firebase: {error}</div>
++      ) : !rows ? (
++        <div className="p-4 text-center text-sm text-mute">Đang tải dữ liệu cảm biến…</div>
++      ) : (
++        <>
++          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
++            <Stat label="Nhiệt độ" value={last ? `${last.temp.toFixed(1)}°C` : "—"} sub={last ? `Lúc ${hhmm(last.time)}` : "Chưa có bản ghi"} tone="sun" />
++            <Stat label="Độ ẩm" value={last ? `${last.humi}%` : "—"} sub="DHT" tone="violet" />
++            <Stat label="Khí gas (MQ ADC)" value={last ? last.gas : "—"} sub={last && (last.gas <= 0 || last.gas >= 4095) ? "Tín hiệu MQ không hợp lệ" : "12-bit ADC"} tone="pink" />
++            <Stat label="Số bản ghi hiển thị" value={rows.length} sub="Mới nhất từ Firebase" tone="lime" />
++          </div>
++          <div className="grid gap-4 lg:grid-cols-2">
++            <div className="card p-4">
++              <h3 className="mb-2 text-sm font-semibold">Nhiệt độ (°C)</h3>
++              <LineChart labels={labels} yFmt={(v) => v.toFixed(1)} series={[{ name: "Temp", color: "var(--color-warn)", values: rows.map((r) => r.temp) }]} />
++            </div>
++            <div className="card p-4">
++              <h3 className="mb-2 text-sm font-semibold">Độ ẩm (%)</h3>
++              <LineChart labels={labels} yFmt={(v) => `${v.toFixed(0)}%`} series={[{ name: "Humi", color: "var(--color-brand-2)", values: rows.map((r) => r.humi) }]} />
++            </div>
++          </div>
++        </>
++      )}
++    </div>
++  );
++}
+diff --git a/dashboard/src/components/useSensorData.js b/dashboard/src/components/useSensorData.js
+new file mode 100644
+index 0000000..dc3e8d1
+--- /dev/null
++++ b/dashboard/src/components/useSensorData.js
+@@ -0,0 +1,20 @@
++"use client";
++import { useEffect, useState } from "react";
++import { loadSensorData } from "@/lib/firebase";
++
++/** Poll Firebase mỗi 10s */
++export default function useSensorData(intervalMs = 10000) {
++  const [rows, setRows] = useState(null);
++  const [error, setError] = useState("");
++  useEffect(() => {
++    let alive = true;
++    const load = async () => {
++      try { const r = await loadSensorData(); if (alive) { setRows(r); setError(""); } }
++      catch (e) { if (alive) setError(e.message); }
++    };
++    load();
++    const t = setInterval(load, intervalMs);
++    return () => { alive = false; clearInterval(t); };
++  }, [intervalMs]);
++  return { rows, error };
++}
+diff --git a/dashboard/src/lib/firebase.js b/dashboard/src/lib/firebase.js
+new file mode 100644
+index 0000000..85ca0e4
+--- /dev/null
++++ b/dashboard/src/lib/firebase.js
+@@ -0,0 +1,28 @@
++// Đọc dữ liệu cảm biến từ Firebase Realtime Database (REST, không cần SDK).
++// Cấu hình qua biến môi trường (xem .env.example):
++//   NEXT_PUBLIC_FIREBASE_DB_URL  – URL gốc của RTDB
++//   NEXT_PUBLIC_FIREBASE_PATH    – node chứa bản ghi cảm biến (mặc định "sensor")
++export const FIREBASE_DB_URL = (process.env.NEXT_PUBLIC_FIREBASE_DB_URL || "").replace(/\/+$/, "");
++export const FIREBASE_PATH = (process.env.NEXT_PUBLIC_FIREBASE_PATH || "sensor").replace(/^\/+|\/+$/g, "");
++
++const ALPHABET = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
++/** Firebase push ID mã hoá mili-giây trong 8 ký tự đầu (cột timestamp xuất file không đáng tin) */
++export const pushTime = (id) => {
++  let t = 0;
++  for (const c of id.slice(0, 8)) t = t * 64 + ALPHABET.indexOf(c);
++  return t;
++};
++
++/** Lấy N bản ghi mới nhất, đã lọc dòng DHT lỗi (humi/temp = 0) */
++export async function loadSensorData(limit = 60) {
++  if (!FIREBASE_DB_URL) throw new Error("Chưa cấu hình NEXT_PUBLIC_FIREBASE_DB_URL");
++  const q = new URLSearchParams({ orderBy: '"$key"', limitToLast: String(limit) });
++  const res = await fetch(`${FIREBASE_DB_URL}/${FIREBASE_PATH}.json?${q}`, { cache: "no-store" });
++  if (!res.ok) throw new Error(`Firebase trả về ${res.status}${res.status === 401 ? " – kiểm tra rules đọc" : ""}`);
++  const raw = (await res.json()) || {};
++  return Object.entries(raw)
++    .filter(([, v]) => v && typeof v === "object" && "gas" in v && "humi" in v && "temp" in v)
++    .map(([id, v]) => ({ id, time: pushTime(id), gas: Number(v.gas), humi: Number(v.humi), temp: Number(v.temp) }))
++    .filter((r) => r.humi > 0 && r.temp > 0)
++    .sort((a, b) => a.time - b.time);
++}
+-- 
+2.43.0
+
