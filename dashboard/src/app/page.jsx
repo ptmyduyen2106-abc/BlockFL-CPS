@@ -4,6 +4,7 @@ import { useWallet } from "@/components/WalletProvider";
 import { AddrLink, ChainStrip, Empty, ErrorBox, LineChart, Spinner, Stat, TxLink } from "@/components/ui";
 import { bfl, short, when } from "@/lib/format";
 import { CHAINS } from "@/lib/chains";
+import SensorPanel from "@/components/SensorPanel";
 
 const STATUS = ["—", "Đang mở", "Đã chốt"];
 
@@ -82,6 +83,8 @@ export default function Dashboard() {
           <div className="mono break-all text-xs">{data.latestGlobalHash === "0x" + "0".repeat(64) ? "—" : data.latestGlobalHash}</div>
         </div>
       </div>
+
+      <SensorPanel />
 
       <div className="card overflow-x-auto p-4">
         <h2 className="mb-3 text-sm font-semibold">Sự kiện gần nhất</h2>

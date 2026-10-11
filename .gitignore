@@ -11,3 +11,5 @@ ai_model/outputs/round_[2-9]*/
 data/firebase_live.csv
 data/firebase_state.json
 __pycache__/
+.env.local
+dashboard/.env.local
