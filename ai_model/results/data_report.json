@@ -1,0 +1,32 @@
+{
+  "rows_total": 1544,
+  "rows_sensor_fail_temp_humi_zero": 1088,
+  "rows_timestamp_missing_date": 609,
+  "gas_saturated_4095_before_filter": 21,
+  "rows_valid": 456,
+  "valid_ratio": 0.2953,
+  "sessions": 14,
+  "alert_threshold_gas": 138.25,
+  "alert_percentile": 75.0,
+  "severe_rows_gas_ge_1000": 29,
+  "alert_rows": 114,
+  "alert_ratio": 0.25,
+  "time_range": [
+    "2026-06-07 22:15:12.833000",
+    "2026-10-10 18:42:21.920000"
+  ],
+  "gas": {
+    "median": 0.0,
+    "p95": 3246.0,
+    "max": 4095.0
+  },
+  "temp_mean": 29.85,
+  "humi_mean": 54.93,
+  "data_source": {
+    "used": [
+      "csv"
+    ],
+    "errors": {},
+    "rows": 1544
+  }
+}
