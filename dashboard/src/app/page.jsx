@@ -11,8 +11,9 @@ const STATUS = ["—", "Đang mở", "Đã chốt"];
 export default function Dashboard() {
   const { data, error, loading, chainId } = useChainData();
   const w = useWallet();
-  if (error && !data) return <ErrorBox msg={error} />;
-  if (loading || !data) return <Spinner />;
+  // Panel Firebase độc lập với chain: vẫn hiện khi RPC lỗi hoặc đang tải
+  if (error && !data) return <div className="space-y-6"><ErrorBox msg={error} /><SensorPanel /></div>;
+  if (loading || !data) return <div className="space-y-6"><Spinner /><SensorPanel /></div>;
 
   const done = data.rounds.filter((r) => r.status === 2);
   const labels = done.map((r) => String(r.id));
