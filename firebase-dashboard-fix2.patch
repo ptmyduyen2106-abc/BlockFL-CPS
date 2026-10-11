@@ -1,0 +1,172 @@
+From 433fe5d08f51a3c693d4d267213fcf55978543f3 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 07:29:50 +0000
+Subject: [PATCH] fix(dashboard): chunked+incremental event scan, show real RPC
+ error, MQ gas validity
+
+---
+ dashboard/src/app/page.jsx               |  1 +
+ dashboard/src/components/SensorPanel.jsx |  8 +++++---
+ dashboard/src/components/useChainData.js |  4 ++--
+ dashboard/src/lib/firebase.js            |  4 +++-
+ dashboard/src/lib/fl.js                  | 22 +++++++++++++++++-----
+ dashboard/src/lib/logscan.js             | 15 +++++++++++++++
+ 6 files changed, 43 insertions(+), 11 deletions(-)
+ create mode 100644 dashboard/src/lib/logscan.js
+
+diff --git a/dashboard/src/app/page.jsx b/dashboard/src/app/page.jsx
+index ee4339a..d33ff32 100644
+--- a/dashboard/src/app/page.jsx
++++ b/dashboard/src/app/page.jsx
+@@ -89,6 +89,7 @@ export default function Dashboard() {
+ 
+       <div className="card overflow-x-auto p-4">
+         <h2 className="mb-3 text-sm font-semibold">Sự kiện gần nhất</h2>
++        {data.eventsError && <div className="mb-2 text-xs text-warn">⚠ Không tải được lịch sử sự kiện từ RPC: {data.eventsError}</div>}
+         {data.events.length === 0 ? <Empty>Chưa có sự kiện.</Empty> : (
+           <table className="w-full text-left text-sm">
+             <thead className="text-xs text-mute"><tr><th className="py-1">Sự kiện</th><th>Vòng</th><th>Node</th><th>TX</th><th>Thời gian</th></tr></thead>
+diff --git a/dashboard/src/components/SensorPanel.jsx b/dashboard/src/components/SensorPanel.jsx
+index 12af01e..8b920cc 100644
+--- a/dashboard/src/components/SensorPanel.jsx
++++ b/dashboard/src/components/SensorPanel.jsx
+@@ -12,7 +12,9 @@ export default function SensorPanel() {
+   const { data, error } = useSensorData();
+   if (!FIREBASE_DB_URL) return null;
+   const live = data?.live, hist = data?.history || [], th = data?.thresholds;
+-  const lastGas = hist[hist.length - 1]?.gas;
++  const last = hist[hist.length - 1];
++  const lastGas = last?.gas ?? null;
++  const hasGas = hist.some((r) => r.gas !== null);
+   const labels = sparse(hist, (r) => hhmm(r.time));
+   const hasTH = hist.some((r) => r.temp !== null || r.humi !== null);
+ 
+@@ -31,13 +33,13 @@ export default function SensorPanel() {
+           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+             <Stat label="Nhiệt độ" value={live ? `${live.temp}°C` : "—"} sub={th && live && live.temp > th.temperatureMax ? `⚠ Vượt ngưỡng ${th.temperatureMax}°C` : "Giá trị hiện tại"} tone="sun" />
+             <Stat label="Độ ẩm" value={live ? `${live.humi}%` : "—"} sub="Giá trị hiện tại" tone="violet" />
+-            <Stat label="Khí gas (MQ ADC)" value={lastGas ?? "—"} sub={th && lastGas > th.gasMax ? `⚠ Vượt ngưỡng ${th.gasMax}` : "Bản ghi mới nhất"} tone="pink" />
++            <Stat label="Khí gas (MQ ADC)" value={lastGas ?? "—"} sub={lastGas === null ? (last ? "MQ mất tín hiệu (ADC=0/4095)" : "Chưa có bản ghi") : th && lastGas > th.gasMax ? `⚠ Vượt ngưỡng ${th.gasMax}` : "Bản ghi mới nhất"} tone="pink" />
+             <Stat label="Bụi" value={live?.dust ?? "—"} sub={`${hist.length} bản ghi lịch sử`} tone="lime" />
+           </div>
+           <div className="grid gap-4 lg:grid-cols-2">
+             <div className="card p-4">
+               <h3 className="mb-2 text-sm font-semibold">Gas theo thời gian</h3>
+-              <LineChart labels={labels} yFmt={(v) => v.toFixed(0)} series={[{ name: "Gas", color: "var(--color-warn)", values: hist.map((r) => r.gas) }]} />
++              {hasGas ? <LineChart labels={labels} yFmt={(v) => v.toFixed(0)} series={[{ name: "Gas", color: "var(--color-warn)", values: hist.map((r) => r.gas) }]} /> : <div className="p-6 text-center text-sm text-mute">Cảm biến MQ chưa có tín hiệu hợp lệ trong {hist.length} bản ghi gần nhất (ADC = 0 hoặc 4095).</div>}
+             </div>
+             <div className="card p-4">
+               <h3 className="mb-2 text-sm font-semibold">Nhiệt độ & độ ẩm theo thời gian</h3>
+diff --git a/dashboard/src/components/useChainData.js b/dashboard/src/components/useChainData.js
+index ce8f354..f81fd96 100644
+--- a/dashboard/src/components/useChainData.js
++++ b/dashboard/src/components/useChainData.js
+@@ -1,6 +1,6 @@
+ "use client";
+ import { useCallback, useEffect, useState } from "react";
+-import { loadChainData } from "@/lib/fl";
++import { errMsg, loadChainData } from "@/lib/fl";
+ import { useWallet } from "./WalletProvider";
+ 
+ /** Poll dữ liệu on-chain mỗi 5s (realtime dashboard) */
+@@ -12,7 +12,7 @@ export default function useChainData(intervalMs = 5000) {
+ 
+   const load = useCallback(async () => {
+     try { setData(await loadChainData(readChain)); setError(""); }
+-    catch (e) { setError(e.shortMessage || e.message); }
++    catch (e) { setError(errMsg(e)); }
+     finally { setLoading(false); }
+   }, [readChain]);
+ 
+diff --git a/dashboard/src/lib/firebase.js b/dashboard/src/lib/firebase.js
+index 5bac56b..8b6a165 100644
+--- a/dashboard/src/lib/firebase.js
++++ b/dashboard/src/lib/firebase.js
+@@ -26,6 +26,8 @@ const get = async (path, params) => {
+ 
+ // DHT trả 0 khi đọc lỗi → coi là "không có dữ liệu" (null) thay vì vẽ số 0
+ const valid = (v) => (Number(v) > 0 ? Number(v) : null);
++// MQ: 0 = mất tín hiệu, 4095 = bão hoà ADC 12-bit → không hợp lệ
++const validGas = (v) => (Number(v) > 0 && Number(v) < 4095 ? Number(v) : null);
+ 
+ /** Giá trị hiện tại + N bản ghi lịch sử mới nhất + ngưỡng cảnh báo */
+ export async function loadSensorData(limit = 60) {
+@@ -37,7 +39,7 @@ export async function loadSensorData(limit = 60) {
+   ]);
+   const history = Object.entries(logs || {})
+     .filter(([, v]) => v && typeof v === "object" && "gas" in v)
+-    .map(([id, v]) => ({ id, time: pushTime(id), gas: Number(v.gas), humi: valid(v.humi), temp: valid(v.temp) }))
++    .map(([id, v]) => ({ id, time: pushTime(id), gas: validGas(v.gas), gasRaw: Number(v.gas), humi: valid(v.humi), temp: valid(v.temp) }))
+     .sort((a, b) => a.time - b.time);
+   return { live: live && typeof live === "object" ? live : null, history, thresholds };
+ }
+diff --git a/dashboard/src/lib/fl.js b/dashboard/src/lib/fl.js
+index 7268068..dc7fc03 100644
+--- a/dashboard/src/lib/fl.js
++++ b/dashboard/src/lib/fl.js
+@@ -3,8 +3,12 @@ import FLABI from "@/contracts/FLManager.abi.json";
+ import TokenABI from "@/contracts/RewardToken.abi.json";
+ import { CHAINS, deploymentOf } from "./chains";
+ import { USE_MOCK, mockChainData } from "./mock";
++import { createLogScanner } from "./logscan";
+ 
+ const providers = {};
++const scanners = {}, blockTimeCache = {};
++/** Lấy thông điệp lỗi gốc của RPC (ethers hay chỉ báo "could not coalesce error") */
++export const errMsg = (e) => e?.info?.error?.message || e?.error?.message || e?.shortMessage || e?.message || String(e);
+ export const readProvider = (chainId) =>
+   (providers[chainId] ??= new JsonRpcProvider(CHAINS[chainId].rpc, chainId, { staticNetwork: true, cacheTimeout: -1, batchMaxCount: 1 }));
+ 
+@@ -46,15 +50,23 @@ export async function loadChainData(chainId) {
+     return { address: a, metadata: n.metadata, active: n.active, registeredAt: Number(n.registeredAt), totalUpdates: Number(n.totalUpdates), totalRewards: n.totalRewards, balance: bal };
+   }));
+ 
+-  // sự kiện on-chain (cho bảng lịch sử giao dịch + link Etherscan)
+-  const logs = await fl.queryFilter("*", dep.deployBlock ?? 0, "latest");
+-  const blockTimes = {};
+-  await Promise.all([...new Set(logs.map((l) => l.blockNumber))].map(async (b) => { blockTimes[b] = (await provider.getBlock(b)).timestamp; }));
++  // sự kiện on-chain (cho bảng lịch sử giao dịch + link Etherscan). Lỗi ở đây không làm hỏng cả dashboard.
++  let logs = [], blockTimes = {}, eventsError = "";
++  try {
++    const latest = Number(await provider.getBlockNumber());
++    const scan = (scanners[chainId] ??= createLogScanner());
++    logs = await scan((x, y) => fl.queryFilter("*", x, y), dep.deployBlock ?? 0, latest);
++    await Promise.all([...new Set(logs.map((l) => l.blockNumber))].map(async (b) => {
++      const k = `${chainId}:${b}`;
++      blockTimeCache[k] ??= (await provider.getBlock(b)).timestamp;
++      blockTimes[b] = blockTimeCache[k];
++    }));
++  } catch (e) { eventsError = errMsg(e); logs = []; }
+   const events = logs.filter((l) => l.fragment).map((l) => ({
+     name: l.fragment.name, label: EVENT_LABEL[l.fragment.name] || l.fragment.name,
+     txHash: l.transactionHash, block: l.blockNumber, logIndex: l.index, time: blockTimes[l.blockNumber],
+     args: Object.fromEntries(l.fragment.inputs.map((inp, i) => [inp.name, typeof l.args[i] === "bigint" ? l.args[i] : l.args[i]])),
+   })).sort((a, b) => b.block - a.block || b.logIndex - a.logIndex);
+ 
+-  return { currentRound: Number(currentRound), latestGlobalHash, minUpdates: Number(minUpdates), supply, oracle, rounds, nodes, events, fetchedAt: Date.now() };
++  return { currentRound: Number(currentRound), latestGlobalHash, minUpdates: Number(minUpdates), supply, oracle, rounds, nodes, events, eventsError, fetchedAt: Date.now() };
+ }
+diff --git a/dashboard/src/lib/logscan.js b/dashboard/src/lib/logscan.js
+new file mode 100644
+index 0000000..2196048
+--- /dev/null
++++ b/dashboard/src/lib/logscan.js
+@@ -0,0 +1,15 @@
++/** Quét log theo từng đoạn block (RPC công khai thường giới hạn khoảng quét của eth_getLogs)
++ *  và nhớ block đã quét để các lần poll sau chỉ lấy phần mới. */
++export function createLogScanner(step = 50000, minStep = 2000) {
++  let next = null, logs = [];
++  return async function scan(query, from, latest) {
++    if (next === null) next = from;
++    let s = step;
++    while (next <= latest) {
++      const to = Math.min(next + s - 1, latest);
++      try { logs = logs.concat(await query(next, to)); next = to + 1; }
++      catch (e) { if (s <= minStep) throw e; s = Math.max(minStep, Math.floor(s / 2)); }
++    }
++    return logs;
++  };
++}
+-- 
+2.43.0
+
